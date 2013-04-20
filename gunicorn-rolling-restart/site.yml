@@ -1,0 +1,52 @@
+---
+- hosts: all
+  sudo: true
+
+  vars:
+    ports: [8000, 8001]
+
+  tasks:
+  - name: update apt cache
+    apt: update_cache=yes
+
+  - name: install python-software-properties
+    apt: pkg=python-software-properties state=latest
+
+  - name: add nginx repository
+    apt_repository: repo=ppa:chris-lea/nginx-devel state=present
+
+  - name: install system packages
+    apt: pkg=$item state=present
+    with_items:
+    - curl
+    - runit
+    - nginx
+    - python-pip
+    - python-virtualenv
+
+  - name: create app user
+    user: name=app state=present
+
+  - name: install requirements
+    pip: name=$item virtualenv=/home/app/env state=present
+    with_items:
+    - Flask
+    - gunicorn
+    sudo_user: app
+
+  - name: upload app
+    copy: src=files/app.py dest=/home/app/app.py
+    sudo_user: app
+
+  - name: upload nginx app config
+    copy: src=files/nginx.conf dest=/etc/nginx/sites-available/default
+
+  - include: tasks/create_service.yml name=app-$item run=templates/run.sh.jinja port=$item
+    with_items: $ports
+
+  - name: restart app
+    restart_gunicorn: port=$item
+    with_items: $ports
+
+  - name: reload nginx
+    service: name=nginx state=reloaded

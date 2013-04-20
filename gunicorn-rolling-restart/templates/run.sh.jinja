@@ -1,0 +1,8 @@
+#!/bin/sh
+exec 2>&1
+
+USER=app
+PORT={{ port }}
+
+cd /home/app
+exec chpst -u $USER env/bin/gunicorn --preload --bind=127.0.0.1:${PORT} app:app

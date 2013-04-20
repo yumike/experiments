@@ -1,0 +1,20 @@
+#!/bin/sh
+
+set -e
+. $1
+
+PID=$(cat /etc/sv/app-$port/supervise/pid)
+
+if [ "$PID" = "" ]
+then
+  sv up app-$port
+  echo "changed=true"
+  exit 0
+fi
+
+sv quit app-$port
+while [ "$PID" = "$(cat /etc/sv/app-$port/supervise/pid)" ]; do sleep 0.5; done
+while ! curl -f -s http://127.0.0.1:$port > /dev/null; do sleep 0.5; done
+sleep 10
+
+echo "changed=true pid=$(cat /etc/sv/app-$port/supervise/pid)"

@@ -1,0 +1,11 @@
+- name: create $name service directory
+  file: path=/etc/sv/$name state=directory
+
+- name: upload $name service script
+  template: src=$run dest=/etc/sv/$name/run mode=0755
+
+- name: enable $name service
+  file: src=/etc/sv/$name dest=/etc/service/$name state=link
+
+- name: wait for service to run
+  shell: while [ ! -d /etc/sv/$name/supervise ]; do sleep 1; done
